@@ -1,0 +1,39 @@
+FROM --platform=linux/arm64 rust:1-slim-trixie as builder
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+	locales
+RUN locale-gen en_US.UTF-8
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata
+WORKDIR /app/tools
+WORKDIR /app/sources
+COPY resources/lldap-0.6.3.tar.gz /app/sources
+RUN cargo install wasm-pack
+RUN tar -xzf lldap-0.6.3.tar.gz && \
+	cd lldap-0.6.3 && \
+	cargo build --release --package lldap --package lldap_set_password && \
+	./app/build.sh && \
+	cp target/release/lldap /app/tools/ && \
+	cp target/release/lldap_set_password /app/tools/
+
+FROM --platform=linux/arm64 ubuntu:noble
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+	--no-install-recommends \
+	locales
+RUN locale-gen en_US.UTF-8
+RUN apt-get install -y \
+	init \
+	curl \
+	jo \
+	jq
+COPY resources/docker-compose-wait.service /etc/systemd/system/docker-compose-wait.service
+COPY resources/lldap.service /etc/systemd/system/lldap.service
+COPY resources/lldap-init.service /etc/systemd/system/lldap-init.service
+COPY --from=builder /app/tools /app/tools
+COPY resources/lldap-cli /app/tools/lldap-cli
+WORKDIR /data
+WORKDIR /run/user/0
+WORKDIR /etc/systemd/system/graphical.target.wants
+RUN ln -s /etc/systemd/system/docker-compose-wait.service /etc/systemd/system/graphical.target.wants/docker-compose-wait.service
+RUN ln -s /etc/systemd/system/lldap.service /etc/systemd/system/graphical.target.wants/lldap.service
+RUN ln -s /etc/systemd/system/lldap-init.service /etc/systemd/system/graphical.target.wants/lldap-init.service
+RUN chmod ugo+x /app/tools/lldap-cli
+RUN chown ubuntu:ubuntu /data && touch /data/lldap_config.toml
