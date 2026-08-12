@@ -1,0 +1,13 @@
+[Unit]
+Description="Run docker-compose-wait"
+Wants=multi-user.target
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/run/secrets/secret-lldap-env
+ExecStart=/app/tools/docker-compose-wait
+
+[Install]
+WantedBy=graphical.target

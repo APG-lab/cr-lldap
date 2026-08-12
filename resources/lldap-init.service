@@ -1,0 +1,15 @@
+[Unit]
+Description="Run lldap init"
+Requires=docker-compose-wait.service
+After=docker-compose-wait.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/data
+EnvironmentFile=/run/secrets/secret-lldap-env
+ExecCondition=/bin/bash -c '[ -x /app/tools/lldap-init.sh ] && exit 0 || exit 1'
+ExecStart=/app/tools/lldap-init.sh
+
+[Install]
+WantedBy=graphical.target

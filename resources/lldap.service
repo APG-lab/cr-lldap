@@ -1,0 +1,13 @@
+[Unit]
+Description="Run lldap"
+Wants=multi-user.target
+After=multi-user.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/data
+EnvironmentFile=/run/secrets/secret-lldap-env
+ExecStart=/app/tools/lldap run
+
+[Install]
+WantedBy=graphical.target
